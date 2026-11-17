@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DUO CHALLENGE</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, #111229, #29204b);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 650px;
+      background: #1b1c36;
+      border: 1px solid #41416b;
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 20px 60px #0005;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.4rem;
+      margin: 0;
+    }
+
+    h1 span { color: #ff65a3; }
+
+    .subtitle {
+      text-align: center;
+      color: #b8b8d5;
+      margin-bottom: 28px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      color: #8deac0;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .question {
+      font-size: 1.35rem;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .answers {
+      display: grid;
+      gap: 12px;
+    }
+
+    button {
+      cursor: pointer;
+      border: 1px solid #46466c;
+      border-radius: 13px;
+      padding: 15px;
+      color: white;
+      background: #292b50;
+      font-size: 1rem;
+      text-align: left;
+      transition: 0.2s;
+    }
+
+    button:hover:not(:disabled) {
+      border-color: #ff65a3;
+      background: #37345f;
+    }
+
+    button:disabled { cursor: default; }
+
+    .correct {
+      background: #176344 !important;
+      border-color: #8deac0 !important;
+    }
+
+    .wrong {
+      background: #71314d !important;
+      border-color: #ff65a3 !important;
+    }
+
+    .feedback {
+      min-height: 45px;
+      margin: 18px 0;
+      color: #d7d7ef;
+      line-height: 1.5;
+    }
+
+    .main-button {
+      width: 100%;
+      background: linear-gradient(100deg, #ff65a3, #a56bff);
+      border: none;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .hidden { display: none; }
+
+    .result {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .result h2 {
+      font-size: 2rem;
+      color: #8deac0;
+    }
+
+    @media (max-width: 480px) {
+      .app { padding: 20px; }
+      h1 { font-size: 2rem; }
+      .question { font-size: 1.15rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <h1>DUO <span>CHALLENGE</span></h1>
+    <p class="subtitle">Learn. Play. Compete. Repeat.</p>
+
+    <section id="game">
+      <div class="top">
+        <span id="counter">Question 1</span>
+        <span id="score">Score: 0</span>
+      </div>
+
+      <div id="question" class="question"></div>
+      <div id="answers" class="answers"></div>
+      <div id="feedback" class="feedback"></div>
+
+      <button id="next" class="main-button hidden">
+        Next question →
+      </button>
+    </section>
+
+    <section id="result" class="result hidden">
+      <h2>Challenge complete!</h2>
+      <p id="finalScore"></p>
+      <button class="main-button" onclick="restart()">
+        Play again
+      </button>
+    </section>
+  </main>
+
+  <script>
+    const questions = [
+      {
+        category: "General Knowledge",
+        question: "What is the capital of Japan?",
+        answers: ["Seoul", "Tokyo", "Beijing", "Bangkok"],
+        correct: 1,
+        explanation: "Tokyo is the capital of Japan."
+      },
+      {
+        category: "Chinese",
+        question: "What does 你好 mean?",
+        answers: ["Goodbye", "Thank you", "Hello", "Sorry"],
+        correct: 2,
+        explanation: "你好 (nǐ hǎo) means hello."
+      },
+      {
+        category: "Technology",
+        question: "What does CPU stand for?",
+        answers: [
+          "Central Processing Unit",
+          "Computer Personal User",
+          "Core Program Utility",
+          "Central Power Unit"
+        ],
+        correct: 0,
+        explanation: "CPU means Central Processing Unit."
+      },
+      {
+        category: "Logic",
+        question: "What comes next: 2, 4, 8, 16, ...?",
+        answers: ["18", "24", "32", "64"],
+        correct: 2,
+        explanation: "Each number is multiplied by 2."
+      },
+      {
+        category: "Mathematics",
+        question: "What is 15 × 6?",
+        answers: ["80", "90", "95", "100"],
+        correct: 1,
+        explanation: "15 × 6 = 90."
+      },
+      {
+        category: "French",
+        question: "Which French word means 'book'?",
+        answers: ["Maison", "Livre", "Eau", "Chien"],
+        correct: 1,
+        explanation: "Livre means book."
+      },
+      {
+        category: "General Knowledge",
+        question: "Which planet is known as the Red Planet?",
+        answers: ["Venus", "Mars", "Jupiter", "Mercury"],
+        correct: 1,
+        explanation: "Mars appears red because of iron oxide."
+      },
+      {
+        category: "Technology",
+        question: "Which one is a programming language?",
+        answers: ["Python", "Panther", "Firefox", "Bluetooth"],
+        correct: 0,
+        explanation: "Python is a programming language."
+      }
+    ];
+
+    let order = [];
+    let current = 0;
+    let score = 0;
+    let locked = false;
+
+    const questionElement = document.getElementById("question");
+    const answersElement = document.getElementById("answers");
+    const feedbackElement = document.getElementById("feedback");
+    const nextButton = document.getElementById("next");
+
+    function startGame() {
+      order = [...questions.keys()].sort(() => Math.random() - 0.5);
+      current = 0;
+      score = 0;
+
+      document.getElementById("game").classList.remove("hidden");
+      document.getElementById("result").classList.add("hidden");
+
+      showQuestion();
+    }
+
+    function showQuestion() {
+      locked = false;
+
+      const q = questions[order[current]];
+
+      document.getElementById("counter").textContent =
+        `Question ${current + 1} / ${order.length} · ${q.category}`;
+
+      document.getElementById("score").textContent = `Score: ${score}`;
+
+      questionElement.textContent = q.question;
+      feedbackElement.textContent = "";
+      nextButton.classList.add("hidden");
+
+      answersElement.innerHTML = "";
+
+      q.answers.forEach((answer, index) => {
+        const button = document.createElement("button");
+
+        button.textContent = answer;
+
+        button.addEventListener("click", () => {
+          selectAnswer(index);
+        });
+
+        answersElement.appendChild(button);
+      });
+    }
+
+    function selectAnswer(index) {
+      if (locked) return;
+
+      locked = true;
+
+      const q = questions[order[current]];
+      const buttons = answersElement.querySelectorAll("button");
+
+      buttons.forEach(button => {
+        button.disabled = true;
+      });
+
+      if (index === q.correct) {
+        score++;
+        buttons[index].classList.add("correct");
+        feedbackElement.textContent = "Correct! 🎉 " + q.explanation;
+      } else {
+        buttons[index].classList.add("wrong");
+        buttons[q.correct].classList.add("correct");
+        feedbackElement.textContent = "Not quite. " + q.explanation;
+      }
+
+      document.getElementById("score").textContent = `Score: ${score}`;
+
+      nextButton.classList.remove("hidden");
+    }
+
+    function nextQuestion() {
+      current++;
+
+      if (current >= order.length) {
+        document.getElementById("game").classList.add("hidden");
+        document.getElementById("result").classList.remove("hidden");
+
+        document.getElementById("finalScore").textContent =
+          `You scored ${score} out of ${order.length}!`;
+
+        return;
+      }
+
+      showQuestion();
+    }
+
+    function restart() {
+      startGame();
+    }
+
+    nextButton.addEventListener("click", nextQuestion);
+
+    startGame();
+  </script>
+</body>
+</html>
